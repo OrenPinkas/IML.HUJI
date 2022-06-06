@@ -37,6 +37,7 @@ def cross_validate(estimator: BaseEstimator, X: np.ndarray, y: np.ndarray,
     validation_score: float
         Average validation score over folds
     """
+    m = X.shape[0]
     remainder = m % cv
     ceiling = m // cv + 1
     floor = m // cv
@@ -45,18 +46,21 @@ def cross_validate(estimator: BaseEstimator, X: np.ndarray, y: np.ndarray,
 
     train_score = validation_score = 0
     for i in range(cv):
-        start = ranges[i], end = ranges[i+1]
-        train_set = X[0:start, :]
-        response = y[end:m]
+        start = ranges[i]
+        end = ranges[i+1]
+        train_set = np.concatenate((X.take(indices=range(0,start), axis=0), X.take(indices=range(end,m), axis=0)))
+        train_response = np.concatenate((y.take(indices=range(0,start), axis=0), y.take(indices=range(end,m), axis=0)))
+        validation_set = X.take(indices=range(start,end), axis=0)
+        validation_response = y.take(indices=range(start,end), axis=0)
 
-        estimator_i.fit(train_set, response)
-        y_pred = estimator_i.predict(X[start:end, :])
+        estimator_i = estimator.fit(train_set, train_response)
+        y_validation_pred = estimator_i.predict(validation_set)
+        y_train_pred = estimator_i.predict(train_set)
 
-        error_i = scoring(y[start:end], y_pred)
-        train_score += error_i[0]
-        validation_score += error_i[1]
+        validation_score += scoring(y_validation_pred, validation_response)
+        train_score += scoring(y_train_pred, train_response)
 
-    return train_score/cv, validation_score/cv
+    return validation_score/cv, train_score/cv
 
 if __name__ == '__main__':
     pass
