@@ -86,15 +86,75 @@ def select_regularization_parameter(n_samples: int = 50, n_evaluations: int = 50
         Number of regularization parameter values to evaluate for each of the algorithms
     """
     # Question 6 - Load diabetes dataset and split into training and testing portions
-    raise NotImplementedError()
+    diabetes = datasets.load_diabetes()
+    df = pd.DataFrame(data= np.c_[diabetes['data'], diabetes['target']],
+                      columns=diabetes['feature_names'] + ['target'])
+    df = df.sample(n=n_samples)
+    y = df['target']
+    X = df.drop(['target'], axis=1)
+    X_train, y_train, X_test, y_test = split_train_test(X, y, train_proportion=.5)
 
     # Question 7 - Perform CV for different values of the regularization parameter for Ridge and Lasso regressions
-    raise NotImplementedError()
+    lasso_errors = pd.DataFrame(columns=['validation_error', 'train_error'])
+    ridge_errors = pd.DataFrame(columns=['validation_error', 'train_error'])
+    lams = np.linspace(0, 2, n_evaluations)
+    for lam in lams:
+        ridge_estimator = RidgeRegression(lam)
+        lasso_estimator = Lasso(lam)
+        ridge_validation_score, ridge_train_score = cross_validate(ridge_estimator, X_train.to_numpy(),
+                                                                   y_train.to_numpy(),
+                                                                   scoring=mean_square_error)
+        lasso_validation_score, lasso_train_score = cross_validate(lasso_estimator, X_train.to_numpy(), y_train.to_numpy(),
+                                                       scoring=mean_square_error)
+        lasso_errors.loc[len(lasso_errors.index)] = [lasso_validation_score, lasso_train_score]
+        ridge_errors.loc[len(ridge_errors.index)] = [ridge_validation_score, ridge_train_score]
+    fig = go.Figure([go.Line(name="lasso train error",
+                                x=lams, y=lasso_errors['train_error'], mode="markers",
+                                marker=dict(color="red", size=5)),
+                     go.Line(name="lasso validation error",
+                                x=lams, y=lasso_errors['validation_error'], mode="markers",
+                                marker=dict(color="blue", size=5)),
+                     go.Line(name="ridge train error",
+                             x=lams, y=ridge_errors['train_error'], mode="markers",
+                             marker=dict(color="orange", size=5)),
+                     go.Line(name="ridge validation error",
+                             x=lams, y=ridge_errors['validation_error'], mode="markers",
+                             marker=dict(color="green", size=5))],
+                    layout=go.Layout(
+                        title="cross-validation error for different regularization parameter values",
+                        scene=dict(xaxis=dict(title="lambda"),
+                                   yaxis=dict(title="error"))))
+    fig.show()
+
 
     # Question 8 - Compare best Ridge model, best Lasso model and Least Squares model
-    raise NotImplementedError()
+    lam1 = lams[lasso_errors['validation_error'].idxmin()]
+    lam2 = lams[ridge_errors['validation_error'].idxmin()]
+    lasso_min_validation_error = np.min(lasso_errors['validation_error'])
+    ridge_min_validation_error = np.min(ridge_errors['validation_error'])
+
+    lasso_estimator = Lasso(lam1)
+    lasso_estimator.fit(X_train, y_train)
+
+    ridge_estimator = RidgeRegression(lam2)
+    ridge_estimator.fit(X_train, y_train)
+
+    LS_estimator = LinearRegression()
+    LS_estimator.fit(X_train, y_train)
+
+    lasso_error = mean_square_error(y_test, lasso_estimator.predict(X_test))
+    ridge_error = ridge_estimator.loss(X_test, y_test)
+    LS_error = LS_estimator.loss(X_test, y_test)
+
+    print(f"best lambda for lasso is {lam1}")
+    print(f"best lambda for ridge is {lam2}")
+
+    print(f"lasso error on test set is {lasso_error}")
+    print(f"ridge error on test set is {ridge_error}")
+    print(f"least squares error on test set is {LS_error}")
 
 
 if __name__ == '__main__':
     np.random.seed(0)
-    select_polynomial_degree(100,5)
+    select_polynomial_degree()
+    select_regularization_parameter()

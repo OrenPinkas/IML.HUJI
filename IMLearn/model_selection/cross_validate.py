@@ -61,32 +61,3 @@ def cross_validate(estimator: BaseEstimator, X: np.ndarray, y: np.ndarray,
         train_score += scoring(y_train_pred, train_response)
 
     return validation_score/cv, train_score/cv
-
-if __name__ == '__main__':
-    pass
-    # m = 96
-    # cv = 7
-    # remainder = m%cv
-    # ceiling = m//cv + 1
-    # floor = m // cv
-    # ranges = [i*ceiling for i in range(remainder+1)]
-    # ranges += [remainder*ceiling + i*floor for i in range(1,cv-remainder+1)]
-    #
-    # print(ranges)
-    #
-    # for i in range(cv):
-    #     start = ranges[i]
-    #     end = ranges[i + 1]
-    #     print("level ", i, "\n")
-    #     print(0, start, "\n")
-    #     print(end, m, "\n")
-    #     print(start, end, end-start,  " fold size" ,"\n------------\n")
-
-    # X = np.arange(12)
-    # y = np.arange(10,19)
-    # folds = np.array_split(X, 3)
-    # responses = np.array_split(y, 3)
-    # for a in folds:
-    #     print(a)
-    # for b in responses:
-    #     print(b)
