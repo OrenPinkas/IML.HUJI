@@ -88,7 +88,25 @@ class LogisticRegression(BaseEstimator):
         Fits model using specified `self.optimizer_` passed when instantiating class and includes an intercept
         if specified by `self.include_intercept_
         """
-        raise NotImplementedError()
+        penalties = {
+            'l1' : L1,
+            'l2' : L2
+        }
+        m = X.shape[0] ; d = X.shape[1]
+        weights = np.random.normal(0, size=d) / np.sqrt(d)
+
+        if self.include_intercept_:
+            weights = np.r_[0, weights]
+            X = np.c_[np.ones(m), X]
+
+        if self.penalty_ != "none":
+            reg_mod = penalties[self.penalty_]
+            module = RegularizedModule(LogisticModule(weights), reg_mod(weights), self.lam_, weights, self.include_intercept_)
+        else:
+            module = LogisticModule(weights)
+
+        self.coefs_ = self.solver_.fit(module, X=X, y=y)
+        self.fitted_ = True
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -104,7 +122,10 @@ class LogisticRegression(BaseEstimator):
         responses : ndarray of shape (n_samples, )
             Predicted responses of given samples
         """
-        raise NotImplementedError()
+        probas = self.predict_proba(X)
+        probas[probas > self.alpha_] = 1
+        probas[probas <= self.alpha_] = 0
+        return probas
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
         """
@@ -120,7 +141,11 @@ class LogisticRegression(BaseEstimator):
         probabilities: ndarray of shape (n_samples,)
             Probability of each sample being classified as `1` according to the fitted model
         """
-        raise NotImplementedError()
+        m = X.shape[0]
+        if self.include_intercept_:
+            X = np.c_[np.ones(m), X]
+        e_X_w = np.exp(X @ self.coefs_)
+        return e_X_w / (1 + e_X_w)
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
@@ -139,4 +164,4 @@ class LogisticRegression(BaseEstimator):
         loss : float
             Performance under misclassification error
         """
-        raise NotImplementedError()
+        return np.sum(np.logical_xor(self._predict(X), y))
