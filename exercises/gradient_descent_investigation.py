@@ -199,8 +199,8 @@ def fit_logistic_regression():
     GD = GradientDescent()
     f = LogisticRegression(solver=GD)
     f.fit(X_train.to_numpy(), y_train.to_numpy())
-    y_prob = f.predict_proba(X_test)
-    fpr, tpr, thresholds = roc_curve(y_test, y_prob)
+    y_prob = f.predict_proba(X_train)
+    fpr, tpr, thresholds = roc_curve(y_train, y_prob)
     best_alpha = thresholds[np.argmax(tpr-fpr)]
 
     c = [custom[0], custom[-1]]
@@ -220,23 +220,37 @@ def fit_logistic_regression():
 
     # Fitting l1- and l2-regularized logistic regression models, using cross-validation to specify values
     # of regularization parameter
+
     lambdas = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]
     GD = GradientDescent(max_iter=2000, learning_rate=FixedLR(1e-4))
 
     scores = np.empty((1,0))
     for lam in lambdas:
         g = LogisticRegression(solver=GD, penalty="l1", lam=lam)
-        validation_score, train_score = cross_validate(g, X_train, y_train, scoring=misclassification_error)
+        validation_score, train_score = cross_validate(g, X_train.to_numpy(), y_train.to_numpy(), scoring=misclassification_error)
         scores = np.append(scores, validation_score)
 
     best_lam = lambdas[np.argmax(scores)]
     g = LogisticRegression(solver=GD, penalty="l1", lam=best_lam)
-    g.fit(X_train, y_train)
-    print("best lambda is", best_lam)
+    g.fit(X_train.to_numpy(), y_train.to_numpy())
+    print("best lambda for l1 penalty is", best_lam)
     print("test error for best lambda is", g.loss(X_test, y_test))
+
+    scores_2 = np.empty((1,0))
+    for lam in lambdas:
+        h = LogisticRegression(solver=GD, penalty="l2", lam=lam)
+        validation_score, train_score = cross_validate(h, X_train.to_numpy(), y_train.to_numpy(),
+                                                       scoring=misclassification_error)
+        scores_2 = np.append(scores_2, validation_score)
+
+    best_lam = lambdas[np.argmax(scores_2)]
+    h = LogisticRegression(solver=GD, penalty="l2", lam=best_lam)
+    h.fit(X_train.to_numpy(), y_train.to_numpy())
+    print("best lambda for l2 penalty is", best_lam)
+    print("test error for best lambda is", h.loss(X_test, y_test))
 
 if __name__ == '__main__':
     np.random.seed(0)
-    #compare_fixed_learning_rates()
-    #compare_exponential_decay_rates()
+    compare_fixed_learning_rates()
+    compare_exponential_decay_rates()
     fit_logistic_regression()
